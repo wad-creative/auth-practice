@@ -25,7 +25,7 @@ export const loginLimiter = rateLimit({
   windowMs: minutes(5),
   limit: 5,
   keyGenerator: ipAndEmailKey,
-  skipSuccessfulRequests: true, // a successful login doesn't use up attempts
+  skipSuccessfulRequests: true,
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: { message: "Too many login attempts. Try again in 15 minutes." },
