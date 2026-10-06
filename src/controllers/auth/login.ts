@@ -4,6 +4,7 @@ import { User } from "../../models/user.js";
 import { comparePassword } from "../../lib/comparePassword.js";
 import { createAccessToken, createRefreshToken } from "../../lib/token.js";
 import { verify } from "otplib";
+import { setAuthCookies } from "../../lib/cookies.js";
 
 export async function login(req: Request, res: Response) {
   try {
@@ -74,17 +75,11 @@ export async function login(req: Request, res: Response) {
       tokenVersion: user.tokenVersion,
     });
 
-    // Save refresh token in cookie
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 1000 * 60 * 60 * 24 * 7,
-    });
+    const csrfToken = setAuthCookies(res, accessToken, refreshToken);
 
     res.status(200).json({
       message: "Login successfully",
-      accessToken,
+      csrfToken,
       user: {
         name: user.name,
         email: user.email,

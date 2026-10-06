@@ -1,9 +1,10 @@
 import { Request, Response } from "express";
 import { OAuth2Client } from "google-auth-library";
 import { User } from "../../models/user";
-import { createAccessToken, createRefreshToken } from "../../lib/token";
 import crypto from "crypto";
 import generateUnusablePasswordHash from "../../lib/generateUnusableCode";
+import { setAuthCookies } from "../../lib/cookies";
+import { createAccessToken, createRefreshToken } from "../../lib/token";
 
 // Get google client
 function getGoogleClient() {
@@ -138,29 +139,20 @@ export async function googleAuthCallback(req: Request, res: Response) {
       });
     }
 
-    // Create access token
     const accessToken = createAccessToken({
       userId: user._id.toString(),
       role: user.role,
       tokenVersion: user.tokenVersion,
     });
 
-    // Create refresh token
     const refreshToken = createRefreshToken({
       userId: user._id.toString(),
       tokenVersion: user.tokenVersion,
     });
 
-    // Set cookies for refresh token in the browser
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    setAuthCookies(res, accessToken, refreshToken);
 
-    // Send response
-    res.redirect(`${process.env.CLIENT_URL}/auth/callback`);
+    return res.redirect(`${process.env.CLIENT_URL}/auth/callback`);
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Something went wrong" });
