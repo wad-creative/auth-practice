@@ -13,19 +13,42 @@ import {
 import { requireAuth } from "../middleware/requireAuth.js";
 import { twoFactorAuthSetup } from "../controllers/auth/2FaAuthSetup.js";
 import { twoFaAuthVerify } from "../controllers/auth/2FaAuthVerify.js";
+import { verifyCsrf } from "../lib/verifyCsrf.js";
+import {
+  loginLimiter,
+  loginAccountLimiter,
+  emailActionLimiter,
+  sessionLimiter,
+  oauthLimiter,
+} from "../middleware/rateLimiters.js";
 
 const route = express.Router();
 
-route.post("/register", register);
+// Public routes
+route.post("/register", emailActionLimiter, register);
 route.get("/verify-email", verificationEmail);
-route.post("/login", login);
-route.post("/refresh-token", refreshToken);
-route.post("/logout", logout);
-route.post("/forget-password", forgetPassword);
-route.post("/reset-password", resetPassword);
-route.get("/google", googleAuthStart);
-route.get("/google/callback", googleAuthCallback);
-route.post("/2fa/setup", requireAuth, twoFactorAuthSetup);
-route.post("/2fa/verify", requireAuth, twoFaAuthVerify);
+route.post("/login", loginLimiter, loginAccountLimiter, login);
+route.post("/forget-password", emailActionLimiter, forgetPassword);
+route.post("/reset-password", emailActionLimiter, resetPassword);
+route.get("/google", oauthLimiter, googleAuthStart);
+route.get("/google/callback", oauthLimiter, googleAuthCallback);
+
+// Session routes
+route.post("/refresh", sessionLimiter, verifyCsrf, refreshToken);
+route.post("/logout", verifyCsrf, logout);
+route.post(
+  "/2fa/setup",
+  sessionLimiter,
+  verifyCsrf,
+  requireAuth,
+  twoFactorAuthSetup,
+);
+route.post(
+  "/2fa/verify",
+  sessionLimiter,
+  verifyCsrf,
+  requireAuth,
+  twoFaAuthVerify,
+);
 
 export default route;
